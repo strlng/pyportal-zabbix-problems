@@ -108,7 +108,6 @@ def exists(filename):
 
 def set_image(host):
     # Set the image file for the host
-    # should be a 64x64 bitmap
     # Format is "images/host_name.bmp"
     # If file doesn't exist just ignore
 
