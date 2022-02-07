@@ -2,6 +2,8 @@
 
 This code sets up your pyPortal to download current issues from your Zabbix server
 
+![demo gif](/demo/animation.gif)
+
 ## Create a secrets.py file
 
 This code expects the following in your secrets.py file:
