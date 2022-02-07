@@ -1,6 +1,7 @@
 # pyportal-zabbix-problems
 
-This code sets up your pyPortal to download current issues from your Zabbix server
+This code sets up your pyPortal to download current issues from your Zabbix server.
+The buttons as I have them wired advance the host list (blue button), or refresh the issue data.
 
 ![demo gif](/demo/animation.gif)
 
