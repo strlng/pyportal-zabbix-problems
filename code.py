@@ -11,6 +11,9 @@ from adafruit_bitmap_font import bitmap_font
 from adafruit_display_text import bitmap_label
 from adafruit_pyportal import PyPortal
 
+# the current working directory (where this file is)
+cwd = ("/" + __file__).rsplit("/", 1)[0]
+
 # Add a secrets.py to your filesystem that has a
 # dictionary called secrets with "ssid" and
 # "password" keys with your WiFi credentials.
@@ -31,6 +34,11 @@ esp32_reset = DigitalInOut(board.ESP_RESET)
 spi = busio.SPI(board.SCK, board.MOSI, board.MISO)
 esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
 
+# Create the PyPortal object
+pyportal = PyPortal(esp=esp, external_spi=spi)
+pyportal.set_background(0x000000)
+pyportal.set_backlight(1)
+
 print("Connecting to AP...")
 while not esp.is_connected:
     try:
@@ -44,22 +52,20 @@ print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
 socket.set_interface(esp)
 requests.set_socket(socket, esp)
 
-cwd = ("/" + __file__).rsplit("/", 1)[
-    0
-]  # the current working directory (where this file is)
-
 APIURL = secrets["api_url"]
 AUTHKEY = secrets["auth_key"]
 
 DISPLAY_WIDTH = 320
 DISPLAY_HEIGHT = 240
 
-# Create the PyPortal object
-pyportal = PyPortal(esp=esp, external_spi=spi)
-display = board.DISPLAY
+DARK_RED = 0x7f0606
 
-pyportal.set_background(0x000000)
-pyportal.set_backlight(0.5)
+PROBLEM_BG = [0x606060, # not classified
+              0x0a4866, # information
+              0xb2660a, # warning
+              0xb24d0a, # average
+              0xb22c0a, # high
+              0x7f0606] # disaster
 
 # setting up the hardware buttons
 phys_blue_button = None
@@ -101,15 +107,16 @@ def exists(filename):
         return False
 
 def set_image(host):
-    """Set the image file for a given goup for display.
-    This is most useful for Icons or image slideshows.
-        :param group: The chosen group
-        :param filename: The filename of the chosen image
-    """
+    # Set the image file for the host
+    # should be a 64x64 bitmap
+    # Format is "images/host_name.bmp"
+    # If file doesn't exist just ignore
 
     image_file_path = cwd + "images/" + host + ".bmp"
     print("Set image to", image_file_path)
 
+    # Remove everything from the pyportal
+    # DisplayIO group before starting
     for i in pyportal.splash:
         pyportal.splash.pop()
 
@@ -134,6 +141,7 @@ def set_image(host):
 
 
 def make_host_label(text, anchor_point, anchored_position):
+    # add the host name label to the display group
 
     print("Making label for: " + text)
     set_image(text)
@@ -142,7 +150,7 @@ def make_host_label(text, anchor_point, anchored_position):
         text=text,
         anchor_point=anchor_point,
         anchored_position=anchored_position,
-        background_color=0x990000,
+        background_color=DARK_RED,
         padding_left=10,
         padding_right=board.DISPLAY.width,
         padding_bottom=19,
@@ -153,34 +161,19 @@ def make_host_label(text, anchor_point, anchored_position):
 
 
 def make_problem_text(text, anchor_point, anchored_position, severity):
-    """
-    Create label object for labeling data values.
-    It will get a background color box and appropriate padding.
-
-    :param text: Text to show
-    :param anchor_point: location anchor_point
-    :param anchored_position: location anchored_position
-    :return bitmap_label.Label: the Label object
-    """
+    # add a problem text item.
 
     print("Making problem text for: " + text)
 
-    if severity == "1":
-        bg_color = 0x0C5679
-    elif severity == "2":
-        bg_color = 0xF28A0F
-    elif severity == "3":
-        bg_color = 0xE5340B
-    else:
-        bg_color = 0x000000
+    text_color = 0xffffff
 
     problem_label = bitmap_label.Label(
         font_small,
-        color=0x000000,
+        color=text_color,
         text=text,
         anchor_point=anchor_point,
         anchored_position=anchored_position,
-        background_color=bg_color,
+        background_color=PROBLEM_BG[int(severity)],
         padding_left=5,
         padding_right=board.DISPLAY.width,
         padding_bottom=5,
@@ -189,7 +182,7 @@ def make_problem_text(text, anchor_point, anchored_position, severity):
     pyportal.splash.append(problem_label)
 
 
-def make_update_label_text(color=0x990000, label_text="UPDATING ISSUES"):
+def make_update_label_text(color=DARK_RED, label_text="UPDATING ISSUES"):
     """
     Create label object for labeling data values.
     It will get a background color box and appropriate padding.
@@ -251,8 +244,7 @@ def get_host_problems(hostid):
         "method": "problem.get",
         "params": {
             "hostids": hostid,
-            "output": ["eventid", "name", "severity"],
-            "severities": ["1", "2", "3"],
+            "output": ["eventid", "name", "severity"]
         },
         "auth": AUTHKEY,
         "id": 1,

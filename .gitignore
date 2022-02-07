@@ -1,7 +1,7 @@
-/.nova
-/boot_out.txt
+.nova
+boot_out.txt
 /lib
-/secrets.py
-/pyportal_startup.wav
+secrets.py
+pyportal_startup.wav
 /images
-/.DS_Store
+.DS_Store
