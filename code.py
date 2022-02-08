@@ -112,7 +112,6 @@ def set_image(host):
     # If file doesn't exist just ignore
 
     image_file_path = cwd + "images/" + host + ".bmp"
-    print("Set image to", image_file_path)
 
     # Remove everything from the pyportal
     # DisplayIO group before starting
@@ -134,15 +133,16 @@ def set_image(host):
             image,
             pixel_shader=getattr(image, "pixel_shader", displayio.ColorConverter()),
         )
+        print("Setting host label image to", image_file_path)
         pyportal.splash.append(image_sprite)
     else:
-        print("image does not exist")
+        print("No image available for host " + host)
 
 
 def make_host_label(text, anchor_point, anchored_position):
     # add the host name label to the display group
 
-    print("Making label for: " + text)
+    print("Making host label for: " + text)
     set_image(text)
     host_label = bitmap_label.Label(
         font_large,
@@ -182,17 +182,8 @@ def make_problem_text(text, anchor_point, anchored_position, severity):
 
 
 def make_update_label_text(color=DARK_RED, label_text="UPDATING ISSUES"):
-    """
-    Create label object for labeling data values.
-    It will get a background color box and appropriate padding.
 
-    :param text: Text to show
-    :param anchor_point: location anchor_point
-    :param anchored_position: location anchored_position
-    :return bitmap_label.Label: the Label object
-    """
-
-    print("Making update label text")
+    print("Making update label text: " + label_text)
     for i in pyportal.splash:
         pyportal.splash.pop()
 
@@ -200,13 +191,13 @@ def make_update_label_text(color=DARK_RED, label_text="UPDATING ISSUES"):
         bitmap_label.Label(
             font_large,
             text=label_text,
-            anchor_point=(0, 0),
-            anchored_position=(0, 0),
+            anchor_point=(0.5, 0.5),
+            anchored_position=(160, 0),
+            padding_top=120,
+            padding_left=160,
+            padding_right=160,
+            padding_bottom=120,
             background_color=color,
-            padding_left=52,
-            padding_right=DISPLAY_WIDTH,
-            padding_bottom=int(DISPLAY_HEIGHT / 2 + 50),
-            padding_top=int(DISPLAY_HEIGHT / 2 - 50),
         )
     )
 
@@ -233,7 +224,7 @@ def get_hosts_with_problems():
         problems = get_host_problems(host["hostid"])
         host_problems.append({"host": host, "problems": problems})
     last_update = time.monotonic()
-    print("Data updated at:" + str(last_update))
+    print("Data updated at: " + str(last_update))
     return host_problems
 
 
@@ -253,10 +244,12 @@ def get_host_problems(hostid):
     return problems["result"]
 
 
-print("***** starting loop *****")
+print("***** STARTING LOOP *****")
 while True:
     host_problems = get_hosts_with_problems()
+    host_count = 0
     while host_count < len(host_problems):
+        # DRAW SCREEN FOR HOST AND IT'S PROBLEMS
         host_problem = host_problems[host_count]
         make_host_label(
             text=host_problem["host"]["name"],
@@ -275,53 +268,67 @@ while True:
 
             if int(problem["eventid"]) > max_eventid:
                 max_eventid = int(problem["eventid"])
-                red_alert = True
-
-            print("Event ID: " + problem["eventid"] + " >> " + str(max_eventid))
-
-        if red_alert and not first_run:
-            print("*** RED ALERT ***")
+                if not first_run:
+                    print("Event ID: " + problem["eventid"] + " > " + str(max_eventid) + ": RED ALERT!")
+                    red_alert = True
+        # DONE DRAWING FOR HOST AND IT'S PROBLEMS
+        if red_alert:
+            print("RED ALERT: sounding alarm")
             pyportal.play_file(red_alert_wav, wait_to_finish=False)
             red_alert = False
 
+        # wait 10 seconds before going to next host
         stamp = time.monotonic()
-        # wait 10 seconds before getting again
-        while (time.monotonic() - stamp) < (10):
-            if white_button.value == white_button_default_state and phys_white_button:
+        while (time.monotonic() - stamp) < 10:
+            if (white_button.value == white_button_default_state) and phys_white_button:
                 phys_white_button = False
-            if (
-                white_button.value != white_button_default_state
-                and not phys_white_button
-            ):
+            if ((white_button.value != white_button_default_state) and not phys_white_button):
+                # white button pressed, break out of this loop
                 print("White button pressed!")
                 phys_white_button = True
-                # host_problems = get_hosts_with_problems()
-                # last_update = time.monotonic()
                 break
-
             if blue_button.value == blue_button_default_state and phys_blue_button:
                 phys_blue_button = False
             if blue_button.value != blue_button_default_state and not phys_blue_button:
+                # blue button pressed, break out of this loop
                 phys_blue_button = True
                 print("Blue button pressed!")
                 break
-            # or, if they touch the screen, fetch immediately!
-            # if pyportal.touchscreen.touch_point:
-            # pyportal.play_file(red_alert_wav)
-            # break
-        if phys_white_button:
+        
+        # white button pressed or ten minutes since last update
+        # so break out of this loop
+        print("last_update: " + str(last_update) + "\nCurrent time: " + str(time.monotonic()) + "\nDifference: " + str(time.monotonic() - last_update))
+        if phys_white_button or (time.monotonic() - last_update) > (10 * 60):
+            if phys_white_button:
+                print("White button pressed so breaking out of loop")
+            else:
+                print("It's been 10 minutes, times to update")
             break
 
         if host_count < len(host_problems) - 1:
+            # go to next host
             host_count += 1
         else:
+            # reached the last host, start the loop over
             host_count = 0
+    
+    if len(host_problems) == 0:
+        make_update_label_text(color=0x006600, label_text="No issues.")
+    while len(host_problems) == 0:
+        if (white_button.value == white_button_default_state) and phys_white_button:
+            phys_white_button = False
+        if ((white_button.value != white_button_default_state) and not phys_white_button):
+            # white button pressed, break out of this loop
+            print("White button pressed!")
+            phys_white_button = True
 
-    if (time.monotonic() - last_update) > (10 * 60) or first_run:
-        if not first_run:
-            host_problems = get_hosts_with_problems()
-        if len(host_problems) == 0:
-            make_update_label_text(color=0x00FF00, label_text="NO ISSUES")
+        if phys_white_button or (time.monotonic() - last_update) > (10 * 60):
+            if phys_white_button:
+                print("White button pressed so breaking out of loop")
+                phys_white_button = False
+            else:
+                print("It's been 10 minutes, times to update")
+            break
 
     first_run = False
     red_alert = False
