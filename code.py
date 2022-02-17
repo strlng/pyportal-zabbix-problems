@@ -111,7 +111,10 @@ def set_image(host):
     # Format is "images/host_name.bmp"
     # If file doesn't exist just ignore
 
-    image_file_path = cwd + "images/" + host + ".bmp"
+    image_file_path = "/images/" + host + ".bmp"
+    
+    if not exists(image_file_path):
+        image_file_path = "/images/black.bmp"
 
     # Remove everything from the pyportal
     # DisplayIO group before starting
@@ -120,23 +123,19 @@ def set_image(host):
 
     if not host:
         return  # we're done, no icon desired
-    try:
-        if image_file:
-            image_file.close
-    except NameError:
-        pass
+    #try:
+    #    if image_file:
+    #        image_file.close
+    #except NameError:
+    #    pass
 
-    if exists(image_file_path):
-        image_file = open(cwd + "images/" + host + ".bmp", "rb")
-        image = displayio.OnDiskBitmap(image_file)
-        image_sprite = displayio.TileGrid(
-            image,
-            pixel_shader=getattr(image, "pixel_shader", displayio.ColorConverter()),
-        )
-        print("Setting host label image to", image_file_path)
-        pyportal.splash.append(image_sprite)
-    else:
-        print("No image available for host " + host)
+    image = displayio.OnDiskBitmap(image_file_path,)
+    image_sprite = displayio.TileGrid(
+        image,
+        pixel_shader=image.pixel_shader,
+    )
+    print("Setting host label image to", image_file_path)
+    pyportal.splash.append(image_sprite)
 
 
 def make_host_label(text, anchor_point, anchored_position):
