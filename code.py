@@ -116,11 +116,6 @@ def set_image(host):
     if not exists(image_file_path):
         image_file_path = "/images/black.bmp"
 
-    # Remove everything from the pyportal
-    # DisplayIO group before starting
-    for i in pyportal.splash:
-        pyportal.splash.pop()
-
     if not host:
         return  # we're done, no icon desired
     #try:
@@ -140,6 +135,12 @@ def set_image(host):
 
 def make_host_label(text, anchor_point, anchored_position):
     # add the host name label to the display group
+    
+    # Remove everything from the pyportal
+    # DisplayIO group before starting
+    for i in pyportal.splash:
+        print("removing " + str(i))
+        pyportal.splash.remove(i)
 
     print("Making host label for: " + text)
     set_image(text)
@@ -184,7 +185,8 @@ def make_update_label_text(color=DARK_RED, label_text="UPDATING ISSUES"):
 
     print("Making update label text: " + label_text)
     for i in pyportal.splash:
-        pyportal.splash.pop()
+        print("removing " + str(i))
+        pyportal.splash.remove(i)
 
     pyportal.splash.append(
         bitmap_label.Label(
