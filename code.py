@@ -130,66 +130,72 @@ def set_image(host):
         pixel_shader=image.pixel_shader,
     )
     print("Setting host label image to", image_file_path)
-    pyportal.splash.append(image_sprite)
+
+    return image_sprite
 
 
-def make_host_label(text, anchor_point, anchored_position):
+def make_host_label(text):
     # add the host name label to the display group
-    
-    # Remove everything from the pyportal
-    # DisplayIO group before starting
-    for i in pyportal.splash:
-        print("removing " + str(i))
-        pyportal.splash.remove(i)
 
     print("Making host label for: " + text)
-    set_image(text)
+
     host_label = bitmap_label.Label(
         font_large,
         text=text,
-        anchor_point=anchor_point,
-        anchored_position=anchored_position,
+        anchor_point=(0, 0),
+        anchored_position=(64, 0),
         background_color=DARK_RED,
         padding_left=10,
         padding_right=board.DISPLAY.width,
         padding_bottom=19,
         padding_top=18,
     )
+    return host_label
 
-    pyportal.splash.append(host_label)
 
-
-def make_problem_text(text, anchor_point, anchored_position, severity):
+#def make_problem_text(text, anchor_point, anchored_position, severity):
+def make_problem_text(problems):
+    global max_eventid
+    global red_alert
+    
     # add a problem text item.
-
-    print("Making problem text for: " + text)
-
     text_color = 0xffffff
+    
+    problem_group = displayio.Group()
+    anchor_y = 67
+    for problem in problems:
+        print("Making problem text for: " + problem["name"])
+        
+        problem_label = bitmap_label.Label(
+            font_small,
+            color=text_color,
+            text=problem["name"],
+            anchor_point=(0, 0),
+            anchored_position=(0, anchor_y),
+            background_color=PROBLEM_BG[int(problem["severity"])],
+            padding_left=5,
+            padding_right=board.DISPLAY.width,
+            padding_bottom=5,
+            padding_top=5,
+        )
+        anchor_y += 30
+        if int(problem["eventid"]) > max_eventid:
+            max_eventid = int(problem["eventid"])
+            if not first_run:
+                print("Event ID: " + problem["eventid"] + " > " + str(max_eventid) + ": RED ALERT!")
+                red_alert = True
 
-    problem_label = bitmap_label.Label(
-        font_small,
-        color=text_color,
-        text=text,
-        anchor_point=anchor_point,
-        anchored_position=anchored_position,
-        background_color=PROBLEM_BG[int(severity)],
-        padding_left=5,
-        padding_right=board.DISPLAY.width,
-        padding_bottom=5,
-        padding_top=5,
-    )
-    pyportal.splash.append(problem_label)
+        problem_group.append(problem_label)
+    
+    return problem_group
 
 
 def make_update_label_text(color=DARK_RED, label_text="UPDATING ISSUES"):
 
     print("Making update label text: " + label_text)
-    for i in pyportal.splash:
-        print("removing " + str(i))
-        pyportal.splash.remove(i)
 
-    pyportal.splash.append(
-        bitmap_label.Label(
+    pyportal.splash.pop()
+    pyportal.splash.append(bitmap_label.Label(
             font_large,
             text=label_text,
             anchor_point=(0.5, 0.5),
@@ -199,13 +205,12 @@ def make_update_label_text(color=DARK_RED, label_text="UPDATING ISSUES"):
             padding_right=160,
             padding_bottom=120,
             background_color=color,
-        )
-    )
+        ))
 
 
 def get_hosts_with_problems():
     global last_update
-
+    
     make_update_label_text()
     print("Getting hosts with problems.")
     host_problems = []
@@ -252,26 +257,15 @@ while True:
     while host_count < len(host_problems):
         # DRAW SCREEN FOR HOST AND IT'S PROBLEMS
         host_problem = host_problems[host_count]
-        make_host_label(
-            text=host_problem["host"]["name"],
-            anchor_point=(0, 0),
-            anchored_position=(64, 0),
-        )
-        anchor_y = 67
-        for problem in host_problem["problems"]:
-            make_problem_text(
-                text=problem["name"],
-                anchor_point=(0.0, 0),
-                anchored_position=(0, anchor_y),
-                severity=problem["severity"],
-            )
-            anchor_y += 30
-
-            if int(problem["eventid"]) > max_eventid:
-                max_eventid = int(problem["eventid"])
-                if not first_run:
-                    print("Event ID: " + problem["eventid"] + " > " + str(max_eventid) + ": RED ALERT!")
-                    red_alert = True
+        
+        host_problem_group = displayio.Group()
+        
+        host_problem_group.append(set_image(host_problem["host"]["name"]))
+        host_problem_group.append(make_host_label(host_problem["host"]["name"]))
+        host_problem_group.append(make_problem_text(host_problem["problems"]))
+        
+        pyportal.splash.pop()
+        pyportal.splash.append(host_problem_group)
         # DONE DRAWING FOR HOST AND IT'S PROBLEMS
         if red_alert:
             print("RED ALERT: sounding alarm")
