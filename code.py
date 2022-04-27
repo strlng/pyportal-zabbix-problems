@@ -190,7 +190,7 @@ def make_problem_text(problems):
     return problem_group
 
 
-def make_update_label_text(color=DARK_RED, label_text="UPDATING ISSUES"):
+def show_update_label(color=DARK_RED, label_text="UPDATING ISSUES"):
 
     print("Making update label text: " + label_text)
 
@@ -211,7 +211,7 @@ def make_update_label_text(color=DARK_RED, label_text="UPDATING ISSUES"):
 def get_hosts_with_problems():
     global last_update
     
-    make_update_label_text()
+    show_update_label()
     print("Getting hosts with problems.")
     host_problems = []
 
@@ -308,7 +308,7 @@ while True:
             host_count = 0
     
     if len(host_problems) == 0:
-        make_update_label_text(color=0x006600, label_text="No issues.")
+        show_update_label(color=0x006600, label_text="No issues.")
     while len(host_problems) == 0:
         if (white_button.value == white_button_default_state) and phys_white_button:
             phys_white_button = False
