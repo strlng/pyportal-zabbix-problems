@@ -252,7 +252,13 @@ def get_host_problems(hostid):
 
 print("***** STARTING LOOP *****")
 while True:
-    host_problems = get_hosts_with_problems()
+    try:
+        host_problems = get_hosts_with_problems()
+    except:
+        print("Couldn't get hosts, waiting 10 seconds before trying again...")
+        show_update_label(color=0x000066, label_text="No Response from Zabbix.\nWaiting...")
+        time.sleep(10)
+        continue
     host_count = 0
     while host_count < len(host_problems):
         # DRAW SCREEN FOR HOST AND IT'S PROBLEMS
