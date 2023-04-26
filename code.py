@@ -133,7 +133,6 @@ def set_image(host):
 
     return image_sprite
 
-
 def make_host_label(text):
     # add the host name label to the display group
 
@@ -151,7 +150,6 @@ def make_host_label(text):
         padding_top=18,
     )
     return host_label
-
 
 #def make_problem_text(text, anchor_point, anchored_position, severity):
 def make_problem_text(problems):
@@ -189,7 +187,6 @@ def make_problem_text(problems):
     
     return problem_group
 
-
 def show_update_label(color=DARK_RED, label_text="UPDATING ISSUES"):
 
     print("Making update label text: " + label_text)
@@ -223,7 +220,17 @@ def get_hosts_with_problems():
         "auth": AUTHKEY,
         "id": 1,
     }
-    response = requests.post(APIURL, json=host_data)
+    try:
+        response = requests.post(APIURL, json=host_data)
+    except requests.exceptions.HTTPError as errh:
+        print ("Http Error:",errh)
+    except requests.exceptions.ConnectionError as errc:
+        print ("Error Connecting:",errc)
+    except requests.exceptions.Timeout as errt:
+        print ("Timeout Error:",errt)
+    except requests.exceptions.RequestException as err:
+        print ("Oops: Something Else",err)
+        
     problem_hosts = response.json()
     for host in problem_hosts["result"]:
         hostid = host["hostid"]
@@ -245,7 +252,17 @@ def get_host_problems(hostid):
         "auth": AUTHKEY,
         "id": 1,
     }
-    response = requests.post(APIURL, json=event_data)
+    try:
+        response = requests.post(APIURL, json=event_data)
+    except requests.exceptions.HTTPError as errh:
+        print ("Http Error:",errh)
+    except requests.exceptions.ConnectionError as errc:
+        print ("Error Connecting:",errc)
+    except requests.exceptions.Timeout as errt:
+        print ("Timeout Error:",errt)
+    except requests.exceptions.RequestException as err:
+        print ("Oops: Something Else",err)
+    
     problems = response.json()
     return problems["result"]
 
